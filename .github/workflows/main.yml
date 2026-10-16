@@ -1,0 +1,40 @@
+name: Build Playlist
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+  push:
+    paths:
+      - ".github/workflows/build-playlist.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+
+      - name: Generate playlist
+        env:
+          PLAYLIST_TOKEN: ${{ secrets.PLAYLIST_TOKEN }}
+        run: |
+          test -n "$PLAYLIST_TOKEN"
+          php build.php
+
+      - name: Commit playlist
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add playlist.m3u
+          git diff --cached --quiet || \
+            (git commit -m "Update generated playlist" && git push)
